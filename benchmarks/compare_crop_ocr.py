@@ -12,7 +12,21 @@ PDF = Path(
 )
 
 SCALES = (2, 3)
-GROUND_TRUTH = Path("benchmarks/ground_truth/crop_01.txt")
+#GROUND_TRUTH = Path("benchmarks/ground_truth/crop_01.txt")
+CROPS = [
+    {
+        "name": "crop_01",
+        "start": 0 / 5,
+        "end": 1 / 5,
+        "ground_truth": Path("benchmarks/ground_truth/crop_01.txt"),
+    },
+    {
+        "name": "crop_02",
+        "start": 2 / 5,
+        "end": 3 / 5,
+        "ground_truth": Path("benchmarks/ground_truth/crop_02.txt"),
+    },
+]
 AI_IMAGE = Path("electoral_roll_text/ai_crop_x2.png")
 RESULTS_FILE = Path("benchmarks/results/ocr_benchmark_latest.csv")
 TIMING_FILE = Path(
@@ -51,7 +65,8 @@ def best_line_error(reference_line, ocr_lines):
     )
 
 
-def run_ocr(pdf_path: Path, scale: int):
+def run_ocr(pdf_path: Path, scale: int, start_fraction: float, end_fraction: float):
+    
     ocr = RapidOCR()
 
     with pymupdf.open(pdf_path) as doc:
@@ -59,9 +74,9 @@ def run_ocr(pdf_path: Path, scale: int):
 
         crop = pymupdf.Rect(
             0,
-            0,
+            page.rect.height * start_fraction,
             page.rect.width,
-            page.rect.height / 5,
+            page.rect.height * end_fraction,
         )
 
         pix = page.get_pixmap(
@@ -90,81 +105,97 @@ def run_ai_ocr(image_path: Path):
     return lines, elapsed
 
 def main():
-    reference = GROUND_TRUTH.read_text(encoding="utf-8").strip()
     results_rows = []
-    for scale in SCALES:
-        lines, elapsed = run_ocr(PDF, scale)
-#        hypothesis = "\n".join(lines)
 
-#        cer = character_error_rate(reference, hypothesis)
-#        wer = word_error_rate(reference, hypothesis)
-        reference_lines = reference.splitlines()
+    for crop in CROPS:
+        reference = crop["ground_truth"].read_text(
+            encoding="utf-8"
+        ).strip()
 
-        errors = [
-            best_line_error(reference_line, lines)
-            for reference_line in reference_lines
-            if reference_line.strip()
-        ]
+        print(f"\n##### {crop['name']} #####")
 
-        mean_line_error = sum(errors) / len(errors)
-        results_rows.append({
-            "method": "RapidOCR",
-            "render_scale": scale,
-            "detected_lines": len(lines),
-            "ocr_time_seconds": round(elapsed, 2),
-            "mean_line_error": round(mean_line_error, 3),
-            "enhancement_time_seconds": 0.00,
-            "total_time_seconds": round(elapsed, 2),
-        })
-        print(f"\n=== RapidOCR {scale}x ===")
-        print(f"Detected lines : {len(lines)}")
-        print(f"OCR time       : {elapsed:.2f} s")
-#        print(f"CER            : {cer:.3f}")
-#        print(f"WER            : {wer:.3f}")
-        print(f"Mean line error: {mean_line_error:.3f}")
-        matches = [
-            line for line in lines
-            if "stanley" in line.lower()
-        ]
+        for scale in SCALES:
+            lines, elapsed = run_ocr(
+                PDF,
+                scale,
+                crop["start"],
+                crop["end"],
+            )
 
-        print("Stanley matches:")
-        for line in matches:
-            print(f"  {line}")
+            reference_lines = reference.splitlines()
 
-    lines, elapsed = run_ai_ocr(AI_IMAGE)
+            errors = [
+                best_line_error(reference_line, lines)
+                for reference_line in reference_lines
+                if reference_line.strip()
+            ]
 
-    reference_lines = reference.splitlines()
+            mean_line_error = sum(errors) / len(errors)
 
-    errors = [
-        best_line_error(reference_line, lines)
-        for reference_line in reference_lines
-        if reference_line.strip()
-    ]
+            results_rows.append({
+                "crop": crop["name"],
+                "method": "RapidOCR",
+                "render_scale": scale,
+                "detected_lines": len(lines),
+                "ocr_time_seconds": round(elapsed, 2),
+                "mean_line_error": round(mean_line_error, 3),
+                "enhancement_time_seconds": 0.00,
+                "total_time_seconds": round(elapsed, 2),
+            })
 
-    mean_line_error = sum(errors) / len(errors)
-    enhancement_time = float(
-        TIMING_FILE.read_text(encoding="utf-8").strip()
-    )
-    results_rows.append({
-        "method": "RealESRGAN_x2plus+RapidOCR",
-        "render_scale": 2,
-        "detected_lines": len(lines),
-        "ocr_time_seconds": round(elapsed, 2),
-        "mean_line_error": round(mean_line_error, 3),
-        "enhancement_time_seconds": enhancement_time,
-        "total_time_seconds": round(elapsed + enhancement_time, 2),
-    })
-    print("\n=== AI-enhanced x2 ===")
-    print(f"Detected lines : {len(lines)}")
-    print(f"OCR time       : {elapsed:.2f} s")
-    print(f"Mean line error: {mean_line_error:.3f}")
-    
+            print(f"\n=== RapidOCR {scale}x ===")
+            print(f"Detected lines : {len(lines)}")
+            print(f"OCR time       : {elapsed:.2f} s")
+            print(f"Mean line error: {mean_line_error:.3f}")
+
+        if crop["name"] == "crop_01":
+            lines, elapsed = run_ai_ocr(AI_IMAGE)
+
+            reference_lines = reference.splitlines()
+
+            errors = [
+                best_line_error(reference_line, lines)
+                for reference_line in reference_lines
+                if reference_line.strip()
+            ]
+
+            mean_line_error = sum(errors) / len(errors)
+
+            enhancement_time = float(
+                TIMING_FILE.read_text(
+                    encoding="utf-8"
+                ).strip()
+            )
+
+            results_rows.append({
+                "crop": crop["name"],
+                "method": "RealESRGAN_x2plus+RapidOCR",
+                "render_scale": 2,
+                "detected_lines": len(lines),
+                "ocr_time_seconds": round(elapsed, 2),
+                "mean_line_error": round(mean_line_error, 3),
+                "enhancement_time_seconds": enhancement_time,
+                "total_time_seconds": round(
+                    elapsed + enhancement_time, 2
+                ),
+            })
+
+            print("\n=== AI-enhanced x2 ===")
+            print(f"Detected lines : {len(lines)}")
+            print(f"OCR time       : {elapsed:.2f} s")
+            print(f"Mean line error: {mean_line_error:.3f}")
+
     RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-    with RESULTS_FILE.open("w", newline="", encoding="utf-8") as f:
+    with RESULTS_FILE.open(
+        "w",
+        newline="",
+        encoding="utf-8",
+    ) as f:
         writer = csv.DictWriter(
             f,
             fieldnames=[
+                "crop",
                 "method",
                 "render_scale",
                 "detected_lines",
