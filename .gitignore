@@ -26,3 +26,6 @@ electoral_roll_test/
 
 # Pretrained model weights
 models/
+
+# archive replaces .py.old
+archive/
