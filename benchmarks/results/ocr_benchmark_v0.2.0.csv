@@ -1,0 +1,4 @@
+method,render_scale,detected_lines,ocr_time_seconds,mean_line_error,enhancement_time_seconds,total_time_seconds
+RapidOCR,2,78,8.57,0.197,0.00,8.57
+RapidOCR,3,65,10.25,0.128,0.00,10.25
+RealESRGAN_x2plus+RapidOCR,2,79,15.89,0.118,195.55,211.44
