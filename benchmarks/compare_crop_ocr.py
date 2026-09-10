@@ -57,13 +57,30 @@ def normalized_distance(reference, hypothesis):
 
     return levenshtein(reference, hypothesis) / len(reference)
 
-
+def normalize_content(text):
+    return " ".join(
+        text.replace(".", " ")
+        .replace(",", " ")
+        .replace(";", " ")
+        .split()
+    ).lower()
+    
 def best_line_error(reference_line, ocr_lines):
     return min(
         normalized_distance(reference_line, line)
         for line in ocr_lines
     )
+    
+def best_content_error(reference_line, ocr_lines):
+    normalized_reference = normalize_content(reference_line)
 
+    return min(
+        normalized_distance(
+            normalized_reference,
+            normalize_content(line),
+        )
+        for line in ocr_lines
+    )
 
 def run_ocr(pdf_path: Path, scale: int, start_fraction: float, end_fraction: float):
     
@@ -131,7 +148,15 @@ def main():
             ]
 
             mean_line_error = sum(errors) / len(errors)
+            content_errors = [
+                best_content_error(reference_line, lines)
+                for reference_line in reference_lines
+                if reference_line.strip()
+            ]
 
+            mean_content_error = (
+                sum(content_errors) / len(content_errors)
+            )
             results_rows.append({
                 "crop": crop["name"],
                 "method": "RapidOCR",
@@ -141,13 +166,15 @@ def main():
                 "mean_line_error": round(mean_line_error, 3),
                 "enhancement_time_seconds": 0.00,
                 "total_time_seconds": round(elapsed, 2),
+                "mean_content_error": round(mean_content_error, 3),
             })
 
             print(f"\n=== RapidOCR {scale}x ===")
             print(f"Detected lines : {len(lines)}")
             print(f"OCR time       : {elapsed:.2f} s")
             print(f"Mean line error: {mean_line_error:.3f}")
-
+            print(f"Mean content error: {mean_content_error:.3f}")
+            
         if crop["name"] == "crop_01":
             lines, elapsed = run_ai_ocr(AI_IMAGE)
 
@@ -160,7 +187,15 @@ def main():
             ]
 
             mean_line_error = sum(errors) / len(errors)
+            content_errors = [
+                best_content_error(reference_line, lines)
+                for reference_line in reference_lines
+                if reference_line.strip()
+            ]
 
+            mean_content_error = (
+                sum(content_errors) / len(content_errors)
+            )
             enhancement_time = float(
                 TIMING_FILE.read_text(
                     encoding="utf-8"
@@ -176,15 +211,16 @@ def main():
                 "mean_line_error": round(mean_line_error, 3),
                 "enhancement_time_seconds": enhancement_time,
                 "total_time_seconds": round(
-                    elapsed + enhancement_time, 2
-                ),
+                    elapsed + enhancement_time, 2),
+                "mean_content_error": round(mean_content_error, 3),
             })
 
             print("\n=== AI-enhanced x2 ===")
             print(f"Detected lines : {len(lines)}")
             print(f"OCR time       : {elapsed:.2f} s")
             print(f"Mean line error: {mean_line_error:.3f}")
-
+            print(f"Mean content error: {mean_content_error:.3f}")
+            
     RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
 
     with RESULTS_FILE.open(
@@ -201,6 +237,7 @@ def main():
                 "detected_lines",
                 "ocr_time_seconds",
                 "mean_line_error",
+                "mean_content_error",
                 "enhancement_time_seconds",
                 "total_time_seconds",
             ],

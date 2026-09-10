@@ -1,6 +1,6 @@
-crop,method,render_scale,detected_lines,ocr_time_seconds,mean_line_error,enhancement_time_seconds,total_time_seconds
-crop_01,RapidOCR,2,78,8.13,0.197,0.0,8.13
-crop_01,RapidOCR,3,65,9.83,0.128,0.0,9.83
-crop_01,RealESRGAN_x2plus+RapidOCR,2,79,12.88,0.118,176.23,189.11
-crop_02,RapidOCR,2,132,13.45,0.611,0.0,13.45
-crop_02,RapidOCR,3,120,15.99,0.563,0.0,15.99
+crop,method,render_scale,detected_lines,ocr_time_seconds,mean_line_error,mean_content_error,enhancement_time_seconds,total_time_seconds
+crop_01,RapidOCR,2,78,8.25,0.197,0.143,0.0,8.25
+crop_01,RapidOCR,3,65,9.86,0.128,0.11,0.0,9.86
+crop_01,RealESRGAN_x2plus+RapidOCR,2,79,12.84,0.118,0.091,176.23,189.07
+crop_02,RapidOCR,2,132,13.14,0.611,0.53,0.0,13.14
+crop_02,RapidOCR,3,120,14.97,0.563,0.483,0.0,14.97
