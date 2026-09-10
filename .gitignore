@@ -23,3 +23,6 @@ electoral_roll_text/
 
 # Temporary test inputs
 electoral_roll_test/
+
+# Pretrained model weights
+models/
