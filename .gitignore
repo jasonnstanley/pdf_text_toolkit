@@ -20,3 +20,6 @@ __pycache__/
 
 # Generated text output
 electoral_roll_text/
+
+# Temporary test inputs
+electoral_roll_test/
