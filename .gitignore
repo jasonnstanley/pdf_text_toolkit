@@ -1,0 +1,19 @@
+# Local environments
+.venv*/
+.envrc
+
+# Local project workflow
+history/
+daily_hist.sh
+start.sh
+stop.sh
+
+# Private/source material
+electoral_roll/
+
+# Runtime output
+pdf_processing.log
+
+# Python
+__pycache__/
+*.pyc
