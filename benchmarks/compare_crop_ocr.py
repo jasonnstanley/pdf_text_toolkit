@@ -12,7 +12,7 @@ PDF = Path(
 )
 
 SCALES = (2, 3)
-GROUND_TRUTH = Path("benchmarks/ground_truth_crop.txt")
+GROUND_TRUTH = Path("benchmarks/ground_truth/crop_01.txt")
 AI_IMAGE = Path("electoral_roll_text/ai_crop_x2.png")
 RESULTS_FILE = Path("benchmarks/results/ocr_benchmark_latest.csv")
 TIMING_FILE = Path(
