@@ -21,7 +21,9 @@ MODEL = Path(
 OUTPUT = Path(
     "electoral_roll_text/ai_crop_x2.png"
 )
-
+TIMING_FILE = Path(
+    "benchmarks/results/ai_enhancement_timing.txt"
+)
 
 def pixmap_to_tensor(pix):
     image = Image.frombytes(
@@ -91,6 +93,10 @@ def main():
 
     print(f"Output     : {image.width} x {image.height}")
     print(f"Time       : {elapsed:.2f} s")
+    TIMING_FILE.parent.mkdir(parents=True, exist_ok=True)
+    TIMING_FILE.write_text(f"{elapsed:.2f}\n", encoding="utf-8")
+
+    print(f"Timing     : {TIMING_FILE}")
     print(f"Saved      : {OUTPUT}")
 
 

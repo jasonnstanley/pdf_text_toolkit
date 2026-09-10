@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pymupdf
 from rapidocr_onnxruntime import RapidOCR
-
+import csv
 
 PDF = Path(
     "electoral_roll_test/33112_200370__0009-00546.pdf"
@@ -14,6 +14,10 @@ PDF = Path(
 SCALES = (2, 3)
 GROUND_TRUTH = Path("benchmarks/ground_truth_crop.txt")
 AI_IMAGE = Path("electoral_roll_text/ai_crop_x2.png")
+RESULTS_FILE = Path("benchmarks/results/ocr_benchmark_latest.csv")
+TIMING_FILE = Path(
+    "benchmarks/results/ai_enhancement_timing.txt"
+)
 
 def levenshtein(a, b):
     previous = list(range(len(b) + 1))
@@ -87,6 +91,7 @@ def run_ai_ocr(image_path: Path):
 
 def main():
     reference = GROUND_TRUTH.read_text(encoding="utf-8").strip()
+    results_rows = []
     for scale in SCALES:
         lines, elapsed = run_ocr(PDF, scale)
 #        hypothesis = "\n".join(lines)
@@ -102,6 +107,15 @@ def main():
         ]
 
         mean_line_error = sum(errors) / len(errors)
+        results_rows.append({
+            "method": "RapidOCR",
+            "render_scale": scale,
+            "detected_lines": len(lines),
+            "ocr_time_seconds": round(elapsed, 2),
+            "mean_line_error": round(mean_line_error, 3),
+            "enhancement_time_seconds": 0.00,
+            "total_time_seconds": round(elapsed, 2),
+        })
         print(f"\n=== RapidOCR {scale}x ===")
         print(f"Detected lines : {len(lines)}")
         print(f"OCR time       : {elapsed:.2f} s")
@@ -128,11 +142,43 @@ def main():
     ]
 
     mean_line_error = sum(errors) / len(errors)
-
+    enhancement_time = float(
+        TIMING_FILE.read_text(encoding="utf-8").strip()
+    )
+    results_rows.append({
+        "method": "RealESRGAN_x2plus+RapidOCR",
+        "render_scale": 2,
+        "detected_lines": len(lines),
+        "ocr_time_seconds": round(elapsed, 2),
+        "mean_line_error": round(mean_line_error, 3),
+        "enhancement_time_seconds": enhancement_time,
+        "total_time_seconds": round(elapsed + enhancement_time, 2),
+    })
     print("\n=== AI-enhanced x2 ===")
     print(f"Detected lines : {len(lines)}")
     print(f"OCR time       : {elapsed:.2f} s")
     print(f"Mean line error: {mean_line_error:.3f}")
+    
+    RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    with RESULTS_FILE.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "method",
+                "render_scale",
+                "detected_lines",
+                "ocr_time_seconds",
+                "mean_line_error",
+                "enhancement_time_seconds",
+                "total_time_seconds",
+            ],
+        )
+
+        writer.writeheader()
+        writer.writerows(results_rows)
+
+    print(f"\nResults saved   : {RESULTS_FILE}")
     
 if __name__ == "__main__":
     main()
