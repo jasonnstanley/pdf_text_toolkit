@@ -17,3 +17,6 @@ pdf_processing.log
 # Python
 __pycache__/
 *.pyc
+
+# Generated text output
+electoral_roll_text/

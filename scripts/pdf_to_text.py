@@ -6,11 +6,13 @@ from pathlib import Path
 import pymupdf as fitz  # PyMuPDF
 from pypdf import PdfReader
 from tqdm import tqdm
+from rapidocr_onnxruntime import RapidOCR
 import sys
 
 MIN_TEXT_THRESHOLD = 50
 LOG_FILE = "pdf_processing.log"
-
+OCR_SCALE = 2
+OCR_ENGINE = RapidOCR()
 # =========================
 # Logging Setup
 # =========================
@@ -41,7 +43,23 @@ def extract_with_pypdf(pdf_path: Path) -> str:
         if page_text:
             text += page_text
     return text
+def extract_with_ocr(pdf_path: Path) -> str:
+    text_chunks = []
 
+    with fitz.open(pdf_path) as doc:
+        for page in doc:
+            pix = page.get_pixmap(
+                matrix=fitz.Matrix(OCR_SCALE, OCR_SCALE),
+                alpha=False,
+            )
+
+            result, _ = OCR_ENGINE(pix.tobytes("png"))
+
+            if result:
+                page_text = "\n".join(item[1] for item in result)
+                text_chunks.append(page_text)
+
+    return "\n\n".join(text_chunks)
 
 def extract_text(pdf_path: Path) -> str:
     text = extract_with_pymupdf(pdf_path)
@@ -49,6 +67,10 @@ def extract_text(pdf_path: Path) -> str:
     if len(text.strip()) < MIN_TEXT_THRESHOLD:
         logging.info(f"Fallback to pypdf: {pdf_path}")
         text = extract_with_pypdf(pdf_path)
+
+    if len(text.strip()) < MIN_TEXT_THRESHOLD:
+        logging.info(f"Fallback to OCR: {pdf_path}")
+        text = extract_with_ocr(pdf_path)
 
     return text
 
