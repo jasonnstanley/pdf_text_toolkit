@@ -3,7 +3,7 @@
 import argparse
 import logging
 from pathlib import Path
-import fitz  # PyMuPDF
+import pymupdf as fitz  # PyMuPDF
 from pypdf import PdfReader
 from tqdm import tqdm
 import sys
